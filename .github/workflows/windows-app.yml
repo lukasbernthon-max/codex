@@ -9,6 +9,7 @@ on:
       - 'main.py'
       - 'requirements.txt'
       - 'tests/**'
+      - 'scripts/**'
       - '.github/workflows/windows-app.yml'
 
 permissions:
@@ -37,21 +38,7 @@ jobs:
       - name: Package standalone app
         run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name Focus --collect-all keyring --collect-submodules pynput main.py
       - name: Check the packaged Windows executable
-        shell: pwsh
-        run: |
-          $report = Join-Path $env:RUNNER_TEMP 'focus-smoke.json'
-          $process = Start-Process -FilePath '.\dist\Focus.exe' -ArgumentList @('--smoke-report', $report) -PassThru
-          if (-not $process.WaitForExit(120000)) {
-            $process.Kill()
-            throw 'Packaged app did not finish its startup check.'
-          }
-          if (Test-Path $report) { Get-Content $report }
-          if ($process.ExitCode -ne 0 -or -not (Test-Path $report)) {
-            throw 'Packaged Windows startup check failed.'
-          }
-          $result = Get-Content $report -Raw | ConvertFrom-Json
-          if ($result.status -ne 'passed') { throw 'Windows smoke checks failed.' }
-          (Get-FileHash dist/Focus.exe -Algorithm SHA256).Hash + '  Focus.exe' | Set-Content dist/SHA256SUMS.txt
+        run: python scripts/check_windows_build.py
       - uses: actions/upload-artifact@v4
         with:
           name: Focus-Windows
