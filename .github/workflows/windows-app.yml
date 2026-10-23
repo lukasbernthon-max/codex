@@ -2,13 +2,28 @@ name: Build Windows app
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ixl_assistant/**'
+      - 'main.py'
+      - 'requirements.txt'
+      - 'tests/**'
+      - '.github/workflows/windows-app.yml'
 
 permissions:
   contents: read
 
+concurrency:
+  group: windows-app-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,10 +34,44 @@ jobs:
         run: python -m pip install -r requirements.txt pytest "pyinstaller>=6.16,<7"
       - name: Test
         run: python -m pytest -q
-      - name: Package
-        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name Focus --collect-all keyring --collect-submodules pynput main.py
+      - name: Package standalone app
+        run: python -m PyInstaller --noconfirm --clean --windowed --onefile --name Focus --collect-all keyring --collect-submodules pynput main.py
+      - name: Check the packaged Windows executable
+        shell: pwsh
+        run: |
+          $report = Join-Path $env:RUNNER_TEMP 'focus-smoke.json'
+          $process = Start-Process -FilePath '.\dist\Focus.exe' -ArgumentList @('--smoke-report', $report) -PassThru
+          if (-not $process.WaitForExit(120000)) {
+            $process.Kill()
+            throw 'Packaged app did not finish its startup check.'
+          }
+          if (Test-Path $report) { Get-Content $report }
+          if ($process.ExitCode -ne 0 -or -not (Test-Path $report)) {
+            throw 'Packaged Windows startup check failed.'
+          }
+          $result = Get-Content $report -Raw | ConvertFrom-Json
+          if ($result.status -ne 'passed') { throw 'Windows smoke checks failed.' }
+          (Get-FileHash dist/Focus.exe -Algorithm SHA256).Hash + '  Focus.exe' | Set-Content dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: Focus-Windows
-          path: dist/Focus/
+          path: dist/
           if-no-files-found: error
+      - name: Publish downloadable Windows app
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $tag = 'focus-' + $env:GITHUB_SHA.Substring(0,12)
+          @'
+          Download **Focus.exe** below and double-click it. No Python, ZIP extraction, or installer commands are required. The first launch may take a moment while the bundled runtime starts.
+
+          Focus opens as a movable, resizable window with always-on-top and compact-view controls. Enter your own OpenAI API key in Settings. API usage is billed separately. No key is included in this download.
+
+          This build passed automated Windows tests and a packaged-app startup check. Live API answers and capture on your particular monitor configuration still need real-world validation. AI answers can be wrong.
+
+          The executable is not code-signed. Windows may warn about its publisher; do not disable your security protections.
+          '@ | Set-Content release-notes.md
+          gh release create $tag dist/Focus.exe dist/SHA256SUMS.txt --target $env:GITHUB_SHA --title 'Focus for Windows' --notes-file release-notes.md --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }

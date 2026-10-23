@@ -158,6 +158,17 @@ class MainWindow(QWidget):
         outer.addLayout(header)
         outer.addWidget(label("SCREENSHOT STUDY ASSISTANT", "muted"))
         outer.addWidget(label("Capture a question. Understand the answer.", "muted"))
+        controls = QHBoxLayout()
+        self.pin = QPushButton("Always on top ✓")
+        self.pin.setCheckable(True)
+        self.pin.setChecked(True)
+        self.pin.clicked.connect(self.toggle_pin)
+        controls.addWidget(self.pin)
+        self.compact = QPushButton("Compact view")
+        self.compact.setCheckable(True)
+        self.compact.clicked.connect(self.toggle_compact)
+        controls.addWidget(self.compact)
+        outer.addLayout(controls)
         self.capture_button = QPushButton("＋  Capture question     Ctrl + Shift + S")
         self.capture_button.setObjectName("primary")
         self.capture_button.clicked.connect(self.begin_capture)
@@ -232,6 +243,24 @@ class MainWindow(QWidget):
         outer.addWidget(label("AI can make mistakes. Check before you submit.", "muted"))
         if enable_hotkey:
             self.install_hotkey()
+
+    def toggle_pin(self, enabled):
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, enabled)
+        self.pin.setText("Always on top ✓" if enabled else "Always on top")
+        self.show()
+
+    def toggle_compact(self, enabled):
+        self.preview.setVisible(not enabled)
+        self.compact.setText("Full view" if enabled else "Compact view")
+        self.resize(self.width(), 550 if enabled else 760)
+
+    def welcome(self):
+        try:
+            configured = bool(load_key())
+        except Exception:
+            configured = False
+        if not configured:
+            SettingsDialog(self).exec()
 
     def install_hotkey(self):
         try:
@@ -407,12 +436,43 @@ class MainWindow(QWidget):
 
 
 def main():
+    import argparse
+    import json
+    from pathlib import Path
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--smoke-report", type=Path)
+    args = parser.parse_args()
     app = QApplication(sys.argv)
     app.setApplicationName("Focus")
     app.setStyle("Fusion")
     app.setStyleSheet(STYLE)
     window = MainWindow()
     window.show()
+    if args.smoke_report:
+        def smoke_test():
+            try:
+                import keyring
+                import mss
+                import pynput.keyboard
+                if window.listener is None or not window.listener.is_alive():
+                    raise RuntimeError("Global keyboard listener did not start")
+                if keyring.get_keyring().priority <= 0:
+                    raise RuntimeError("Secure credential backend is unavailable")
+                if window.grab().isNull():
+                    raise RuntimeError("The application window did not render")
+                window.toggle_compact(True)
+                window.toggle_compact(False)
+                report = {"status": "passed", "checks": ["window render", "compact toggle", "keyboard listener", "credential backend", "capture module import"]}
+                code = 0
+            except Exception as error:
+                report = {"status": "failed", "error": str(error)}
+                code = 1
+            args.smoke_report.write_text(json.dumps(report, indent=2), encoding="utf-8")
+            window.close()
+            app.exit(code)
+        QTimer.singleShot(1500, smoke_test)
+    else:
+        QTimer.singleShot(300, window.welcome)
     sys.exit(app.exec())
 
 

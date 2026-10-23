@@ -145,3 +145,15 @@ def test_background_analysis_end_to_end(window, app):
         assert window.answer.text() == '4'
         assert len(window.history) == 1
         assert window.copy.isEnabled()
+
+
+def test_popup_controls(window):
+    window.toggle_compact(True)
+    assert window.preview.isHidden()
+    assert window.compact.text() == 'Full view'
+    window.toggle_compact(False)
+    assert not window.preview.isHidden()
+    window.toggle_pin(False)
+    assert not (window.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
+    window.toggle_pin(True)
+    assert window.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
