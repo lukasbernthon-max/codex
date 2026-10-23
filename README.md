@@ -2,7 +2,24 @@
 
 A compact, always-on-top Windows study companion built with Python and PySide6. Select an IXL question, review a prominent answer, and learn from a short explanation and verification step. Focus never clicks, types, or submits answers on IXL.
 
-## Install and run (Windows 10/11)
+## Download the Windows app
+
+Open [the latest Focus release](https://github.com/lukasbernthon-max/codex/releases/latest)
+and download **Focus.exe** under Assets. Double-click it to open the floating
+assistant. Python and dependencies are bundled; no installation commands or ZIP
+extraction are needed. Enter your own OpenAI API key in the first-launch Settings
+window. Drag the title bar to move, resize from the edges, and use **Compact view**,
+**Always on top**, and **Opacity** to control the popup. Native minimize and close
+buttons are in the title bar.
+
+GitHub's Windows workflow publishes a release only after tests and the packaged
+executable startup check pass. Releases are unsigned, so Windows may show a
+publisher warning; never disable security protections. Initial startup may take
+a moment while the bundled runtime extracts. The Windows app requires 64-bit
+Windows 10/11. Model accuracy and individual monitor capture configurations still
+need real-world verification.
+
+## Build/install from source (Windows 10/11)
 
 **Automatic installation:** extract the complete project ZIP and double-click
 `Install Focus.cmd`. It downloads a signed Python installer, installs the build
@@ -11,9 +28,9 @@ not need to type commands or install Python yourself. See `START HERE.txt`.
 The automatic installer still needs validation on Windows; this project was
 developed and tested with offscreen Qt on Linux. The ZIP is not a prebuilt binary.
 
-For maintainers, `.github/workflows/windows-app.yml` also provides a manually
-triggered Windows test/build job that uploads the packaged app as an artifact.
-That workflow has not been run or published from this workspace.
+For maintainers, `.github/workflows/windows-app.yml` automatically tests, builds,
+and publishes a single executable when application changes reach `main`. It can
+also be triggered manually. A packaged startup check gates release publication.
 
 ### Manual installation
 
