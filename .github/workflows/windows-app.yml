@@ -1,0 +1,28 @@
+name: Build Windows app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt pytest "pyinstaller>=6.16,<7"
+      - name: Test
+        run: python -m pytest -q
+      - name: Package
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name Focus --collect-all keyring --collect-submodules pynput main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Focus-Windows
+          path: dist/Focus/
+          if-no-files-found: error

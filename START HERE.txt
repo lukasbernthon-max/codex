@@ -1,0 +1,29 @@
+FOCUS - WINDOWS APP
+
+1. Right-click the downloaded ZIP and choose Extract All.
+2. Open the extracted folder and double-click "Install Focus.cmd".
+3. Wait for installation to finish. Focus opens automatically.
+
+After installation, open Focus using its desktop shortcut.
+You do not need to install Python or type commands yourself.
+
+You still need your own OpenAI API key. Enter it in Focus > Settings.
+An OpenAI API account with available credits is required; ChatGPT billing
+is separate. Never share your API key in chat.
+
+Requires 64-bit Windows 10/11, internet access, and space for Python,
+the app, and its build tools. Allow several minutes for the first install.
+The installer downloads Python from python.org and checks its Windows
+publisher signature. Dependencies are downloaded from PyPI over HTTPS.
+No administrator access is normally required.
+
+This ZIP contains an automatic builder/installer, not a prebuilt EXE.
+It creates Focus.exe on your Windows computer. The Windows installation
+flow has not been executed in the Linux development environment.
+
+If installation fails, keep the window open and copy its error message.
+Do not disable antivirus or Windows security protections.
+
+To remove: close Focus, delete its desktop shortcut, and remove
+%LOCALAPPDATA%\FocusAssistant. To also remove the saved API key, clear
+the key in Focus Settings and save BEFORE removing the app.
